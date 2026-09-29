@@ -17,6 +17,11 @@ import { MAX_CHECKS_PER_TURN, type ActivityEvent, type AvailabilityCheck, type C
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
 const EFFORT = (process.env.AGENT_EFFORT || "medium") as "low" | "medium" | "high";
+
+// Not every model accepts every option: Haiku 4.5 rejects the effort setting, and
+// server-side refusal fallbacks exist for Claude Opus 5 and Claude Fable models.
+const SUPPORTS_EFFORT = !MODEL.startsWith("claude-haiku");
+const SUPPORTS_FALLBACKS = /^claude-(opus-5|fable)/.test(MODEL);
 const MAX_TIMES_PER_DAY = 12;
 
 let client: Anthropic | undefined;
@@ -241,9 +246,11 @@ export async function runReceptionist(
     model: MODEL,
     max_tokens: 8000,
     max_iterations: 8,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    output_config: { effort: EFFORT },
+    ...(SUPPORTS_FALLBACKS && {
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default" as const,
+    }),
+    ...(SUPPORTS_EFFORT && { output_config: { effort: EFFORT } }),
     system: [
       { type: "text", text: STATIC_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
       { type: "text", text: clinicClock(now) },
