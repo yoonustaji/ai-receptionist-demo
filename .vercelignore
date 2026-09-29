@@ -1,0 +1,4 @@
+# The Vercel CLI doesn't read .gitignore, so secrets must be excluded here too.
+# Set environment variables in the Vercel project settings instead.
+.env*
+!.env.example
