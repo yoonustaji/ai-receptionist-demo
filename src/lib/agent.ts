@@ -19,7 +19,7 @@ import {
   nowInTimeZone,
   type ClinicNow,
 } from "./dates";
-import { STATIC_SYSTEM_PROMPT, clinicClock } from "./prompt";
+import { STATIC_SYSTEM_PROMPT, clinicClock, upcomingDates } from "./prompt";
 import { MAX_CHECKS_PER_TURN, type ActivityEvent, type AvailabilityCheck, type ChatTurn } from "./types";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5";
@@ -265,6 +265,7 @@ export async function runReceptionist(
     ...(SUPPORTS_EFFORT && { output_config: { effort: EFFORT } }),
     system: [
       { type: "text", text: STATIC_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+      { type: "text", text: upcomingDates(now.date), cache_control: { type: "ephemeral" } },
       { type: "text", text: clinicClock(now) },
     ],
     tools: [checkAvailability, bookTool, findTool, cancelTool, callbackTool],

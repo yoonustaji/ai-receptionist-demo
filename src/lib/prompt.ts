@@ -1,5 +1,15 @@
 import { business, type Weekday } from "../config/business";
-import { formatDate, formatTime, type ClinicNow } from "./dates";
+import {
+  WEEKDAY_NAMES,
+  addDays,
+  formatDate,
+  formatTime,
+  weekdayName,
+  weekdayOf,
+  type ClinicNow,
+} from "./dates";
+
+const UPCOMING_DAYS = 14;
 
 const DAY_NAMES: Record<Weekday, string> = {
   mon: "Monday",
@@ -42,7 +52,7 @@ How to behave:
 - Only offer times that check_availability returned. If nothing suits, check other days.
 - The times you already offered in this conversation are still valid while you collect the patient's details, so don't check the same day again for that. book_appointment verifies the slot itself and tells you if it was taken.
 - Never invent prices, policies or availability. If the answer is not in the clinic information, say so and offer a callback from the team.
-- All times are the clinic's local time. When a patient says "tomorrow" or "next Tuesday", work out the date from today's date and confirm the actual date with them.
+- All times are the clinic's local time. When a patient mentions a day ("tomorrow", "next Tuesday"), take the date from the upcoming dates list rather than working it out, and say the weekday and date back to them. If a phrase could mean two dates, say which one you're using.
 - To look up or cancel an appointment, ask for the mobile number used to book. Confirm which appointment before cancelling.
 - You do not give medical advice or diagnoses. For pain or a dental injury, offer the earliest emergency visit. If the patient describes severe facial swelling, trouble breathing or swallowing, heavy bleeding that won't stop, or an injury to the face or jaw, tell them to call 911 or go to the nearest emergency room now.
 - Only help with this clinic. Politely decline unrelated requests such as coding, essays or general questions.
@@ -63,6 +73,35 @@ ${servicesText()}
 
 Policies and common questions:
 ${business.policies.map((p) => `- ${p}`).join("\n")}`;
+
+function monthDay(date: string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "UTC" }).format(
+    new Date(`${date}T00:00:00Z`),
+  );
+}
+
+// A lookup table of the next two weeks, so the model never does date arithmetic.
+// It changes once a day, so it gets its own cache breakpoint after the static prompt.
+export function upcomingDates(today: string): string {
+  const lines: string[] = [];
+  for (let i = 0; i < UPCOMING_DAYS; i++) {
+    const date = addDays(today, i);
+    const hours = business.hours[weekdayOf(date)];
+    const tag = i === 0 ? " (today)" : i === 1 ? " (tomorrow)" : "";
+    const open = hours ? `open ${formatTime(hours.open)} to ${formatTime(hours.close)}` : "closed";
+    lines.push(`- ${weekdayName(date)}, ${monthDay(date)}${tag}: ${date}, ${open}`);
+  }
+
+  // Weeks run Monday to Sunday.
+  const daysSinceMonday = (WEEKDAY_NAMES.indexOf(weekdayName(today)) + 6) % 7;
+  const thisMonday = addDays(today, -daysSinceMonday);
+  const nextMonday = addDays(thisMonday, 7);
+
+  return `Upcoming dates. Take dates and weekdays from this list instead of working them out:
+${lines.join("\n")}
+
+This week runs from Monday ${monthDay(thisMonday)} to Sunday ${monthDay(addDays(thisMonday, 6))}. Next week runs from Monday ${monthDay(nextMonday)} to Sunday ${monthDay(addDays(nextMonday, 6))}.`;
+}
 
 export function clinicClock(now: ClinicNow): string {
   const h = Math.floor(now.minutes / 60);
