@@ -107,6 +107,7 @@ Serve it over HTTPS (for example with a free Let's Encrypt certificate) before s
 
 - The default model is `claude-opus-5` at `medium` effort. Change `ANTHROPIC_MODEL` or `AGENT_EFFORT` to trade quality against cost and speed.
 - Measured on 15 scripted replies: Opus 5 answered all correctly at about $0.008 per reply. Claude Haiku 4.5 (`ANTHROPIC_MODEL=claude-haiku-4-5`) cost about half, but booked the wrong weekday and misquoted a booking reference, so it isn't recommended for booking work. Its saving is smaller than the price list suggests because this prompt is below Haiku's minimum size for prompt caching.
+- `book_appointment` requires the weekday the assistant told the patient, and refuses the booking if it doesn't match the date. This stops a miscalculated date being booked while the patient hears a different day.
 - The request asks for server-side refusal fallbacks (`fallbacks: "default"`), so a declined request is retried on another model automatically.
 - The static part of the system prompt is prompt-cached, which cuts the cost of repeat requests.
 - Limits: 30 requests per IP per 10 minutes, 600 characters per message, 40 messages per conversation. The rate limit lives in server memory, so **also set a monthly spend limit on the API key in the Claude Console** before sharing the link publicly.

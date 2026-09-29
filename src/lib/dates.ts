@@ -55,6 +55,22 @@ export function weekdayOf(date: string): Weekday {
   return WEEKDAYS[utc(date).getUTCDay()];
 }
 
+export const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
+
+export type WeekdayName = (typeof WEEKDAY_NAMES)[number];
+
+export function weekdayName(date: string): WeekdayName {
+  return WEEKDAY_NAMES[utc(date).getUTCDay()];
+}
+
 export function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;

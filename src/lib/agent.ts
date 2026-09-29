@@ -11,7 +11,14 @@ import {
   requestCallback,
   type DemoState,
 } from "./calendar";
-import { formatShortDate, formatTime, isValidDate, nowInTimeZone, type ClinicNow } from "./dates";
+import {
+  WEEKDAY_NAMES,
+  formatShortDate,
+  formatTime,
+  isValidDate,
+  nowInTimeZone,
+  type ClinicNow,
+} from "./dates";
 import { STATIC_SYSTEM_PROMPT, clinicClock } from "./prompt";
 import { MAX_CHECKS_PER_TURN, type ActivityEvent, type AvailabilityCheck, type ChatTurn } from "./types";
 
@@ -137,6 +144,9 @@ export async function runReceptionist(
     inputSchema: z.object({
       service_id: z.enum(serviceIds),
       date: z.string().describe("YYYY-MM-DD"),
+      weekday: z
+        .enum(WEEKDAY_NAMES)
+        .describe("The day of the week you told the patient for this appointment. It is checked against the date."),
       time: z.string().describe("HH:MM, 24-hour clinic time"),
       customer_name: z.string().describe("Patient's full name"),
       customer_phone: z.string().describe("Patient's mobile number"),
@@ -148,6 +158,7 @@ export async function runReceptionist(
         {
           serviceId: input.service_id,
           date: input.date,
+          weekday: input.weekday,
           time: input.time,
           customerName: input.customer_name,
           customerPhone: input.customer_phone,
@@ -172,6 +183,7 @@ export async function runReceptionist(
         reference: b.id,
         service: service?.name,
         date: b.date,
+        weekday: input.weekday,
         time: formatTime(b.time),
       });
     },

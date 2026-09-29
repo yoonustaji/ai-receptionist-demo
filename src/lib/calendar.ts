@@ -7,6 +7,7 @@ import {
   isValidDate,
   isValidTime,
   toMinutes,
+  weekdayName,
   weekdayOf,
   type ClinicNow,
 } from "./dates";
@@ -155,6 +156,9 @@ function newId(prefix: string, taken: string[]): string {
 export type BookingInput = {
   serviceId: string;
   date: string;
+  // The weekday the assistant told the patient. Checked against the date, so a
+  // miscalculated date can't be booked while the patient hears a different day.
+  weekday: string;
   time: string;
   customerName: string;
   customerPhone: string;
@@ -169,6 +173,15 @@ export function bookAppointment(
   const service = getService(input.serviceId);
   if (!service) return { ok: false, error: "Unknown service." };
   if (!isValidDate(input.date)) return { ok: false, error: "Date must be YYYY-MM-DD." };
+  const actualDay = weekdayName(input.date);
+  if (input.weekday.trim().toLowerCase() !== actualDay.toLowerCase()) {
+    return {
+      ok: false,
+      error:
+        `${input.date} is a ${actualDay}, not a ${input.weekday.trim()}. Nothing was booked. ` +
+        "Tell the patient the correct day and date, and confirm again before booking.",
+    };
+  }
   if (!isValidTime(input.time)) return { ok: false, error: "Time must be HH:MM in 24-hour format." };
   const name = input.customerName.trim();
   if (name.length < 2) return { ok: false, error: "The patient's full name is required." };
